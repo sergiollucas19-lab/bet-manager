@@ -46,14 +46,27 @@ with col2:
             st.warning("⚠️ Você precisa enviar um print ou digitar algo!")
         else:
             try:
-                # Usa o modelo Flash (que é rápido e vê imagens)
-                model = genai.GenerativeModel('gemini-1.5-flash')
+                # --- CORREÇÃO: DETETOR AUTOMÁTICO DE MODELO ---
+                modelo_escolhido = "gemini-1.5-flash" # Tenta esse por padrão
+                try:
+                    # Procura um modelo disponível na sua conta
+                    for m in genai.list_models():
+                        if 'generateContent' in m.supported_generation_methods:
+                            # Prioriza modelos que aceitam imagem (Flash ou 1.5)
+                            if 'flash' in m.name or 'gemini-1.5' in m.name:
+                                modelo_escolhido = m.name
+                                break
+                except:
+                    pass
+                
+                # Configura a IA com o modelo que achou
+                model = genai.GenerativeModel(modelo_escolhido)
                 
                 prompt_base = """
                 Atue como um gestor de risco de apostas esportivas experiente.
                 Analise esta entrada (imagem ou texto) e identifique os erros cometidos.
                 
-                Retorne APENAS um JSON válido com este formato:
+                Retorne APENAS um JSON válido (sem markdown) com este formato exato:
                 {
                     "nota": (0 a 10),
                     "risco": ("Baixo", "Médio" ou "Alto"),
@@ -67,7 +80,7 @@ with col2:
                 }
                 """
                 
-                with st.spinner('🤖 Lendo o print e analisando...'):
+                with st.spinner(f'🤖 Analisando com {modelo_escolhido}...'):
                     response = None
                     
                     if upload_arquivo:
@@ -95,4 +108,4 @@ with col2:
                     st.write(dados['analise_texto'])
                     
             except Exception as e:
-                st.error(f"Erro na leitura: {e}")
+                st.error(f"Erro detalhado: {e}")
