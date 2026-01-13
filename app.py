@@ -14,57 +14,71 @@ st.markdown("""
         background-color: #0E1117;
         color: #FFFFFF;
     }
-    
-    /* Botões em Vinho Premium */
+    /* Inputs de Senha e Texto */
+    .stTextInput > div > div > input {
+        background-color: #262730;
+        color: white;
+        border-radius: 8px;
+        border: 1px solid #4a4a4a;
+    }
+    /* Botões */
     div.stButton > button {
         background-color: #800020;
         color: white;
         border: 1px solid #4a0012;
         border-radius: 8px;
-        transition: 0.3s;
+        width: 100%;
     }
     div.stButton > button:hover {
-        background-color: #a30029; /* Vinho mais claro ao passar o mouse */
+        background-color: #a30029;
         border-color: #ff0040;
     }
-    
-    /* Inputs Escuros */
-    .stTextInput > div > div > input, .stTextArea > div > div > textarea {
-        background-color: #262730;
-        color: white;
-        border-radius: 8px;
-    }
-    
-    /* Títulos e Métricas */
-    h1, h2, h3 {
-        color: #EEEEEE !important;
-    }
-    [data-testid="stMetricValue"] {
-        color: #ff4b4b; /* Vermelho destaque nos números */
-    }
+    h1, h2, h3 { color: #EEEEEE !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# Título
+# --- SISTEMA DE LOGIN (A TRAVA) ---
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+def verificar_senha():
+    if st.session_state.senha_input == st.secrets["ACCESS_PASSWORD"]:
+        st.session_state.authenticated = True
+    else:
+        st.error("🚫 Senha Incorreta! Tente novamente.")
+
+if not st.session_state.authenticated:
+    # TELA DE BLOQUEIO
+    col1, col2, col3 = st.columns([1,2,1])
+    with col2:
+        st.title("🔒 Acesso Restrito")
+        st.write("Este software é exclusivo para membros do Clube.")
+        st.markdown("---")
+        st.text_input("Digite sua Chave de Acesso:", type="password", key="senha_input", on_change=verificar_senha)
+        st.markdown("---")
+        # Aqui você colocará seu link de venda no futuro
+        st.markdown("👉 **[Não tem acesso? Clique aqui para adquirir](https://wa.me/5531999999999)**") 
+    st.stop() # PARA TUDO AQUI SE NÃO TIVER LOGADO
+
+# --- A PARTIR DAQUI, SÓ APARECE SE A SENHA ESTIVER CERTA ---
+
 st.title("💎 BetManager Premium")
 st.write("Inteligência Artificial & Visão Computacional para Gestão de Banca.")
 st.markdown("---")
 
-# Configuração da Chave
+# Configuração da Chave da IA
 try:
     api_key = st.secrets["GOOGLE_API_KEY"]
     genai.configure(api_key=api_key)
 except Exception:
-    st.error("⚠️ Configure a chave API nos Secrets!")
+    st.error("⚠️ Erro técnico: Chave API não configurada.")
     st.stop()
 
-# Layout
+# Layout Principal
 col1, col2 = st.columns([1, 2])
 
 with col1:
     st.header("📸 Dados da Aposta")
-    
-    # Abas estilizadas
     tab1, tab2 = st.tabs(["📁 Enviar Print", "✍️ Digitar"])
     
     upload_arquivo = None
@@ -83,7 +97,7 @@ with col1:
 with col2:
     if analisar_btn:
         if not upload_arquivo and not texto_input:
-            st.warning("⚠️ Você precisa enviar um print ou digitar algo!")
+            st.warning("⚠️ Envie um print ou digite algo!")
         else:
             try:
                 # Detecção Automática de Modelo
@@ -117,7 +131,7 @@ with col2:
                 }
                 """
                 
-                with st.spinner(f'💎 Processando com IA...'):
+                with st.spinner(f'💎 Validando Acesso & Processando...'):
                     response = None
                     if upload_arquivo:
                         imagem = Image.open(upload_arquivo)
@@ -128,17 +142,16 @@ with col2:
                     texto_limpo = response.text.replace("```json", "").replace("```", "")
                     dados = json.loads(texto_limpo)
                     
-                    # Dashboard
                     st.success("Análise Concluída")
                     c1, c2, c3 = st.columns(3)
-                    c1.metric("Nota de Disciplina", f"{dados['nota']}/10")
-                    c2.metric("Nível de Risco", dados['risco'])
-                    c3.metric("Prejuízo Estimado", dados['prejuizo_estimado'])
+                    c1.metric("Nota", f"{dados['nota']}/10")
+                    c2.metric("Risco", dados['risco'])
+                    c3.metric("Prejuízo", dados['prejuizo_estimado'])
                     
-                    st.subheader("📊 Raio-X do Erro")
+                    st.subheader("📊 Raio-X")
                     st.bar_chart(dados['fontes_de_erro'])
                     
-                    st.info("🧠 Consultoria IA")
+                    st.info("🧠 Consultoria")
                     st.write(dados['analise_texto'])
                     
             except Exception as e:
